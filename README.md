@@ -8,7 +8,7 @@ Rotors Github page can be accessed [here](https://github.com/ethz-asl/rotors_sim
 
 ## Installation 
 
-The following is the steps needed to get this repo to work with the above dependencies. Refer to the [ROTORS project page on Github](https://github.com/ethz-asl/rotors_simulator) for more details.
+The following are the steps needed to get this repo to work with the above dependencies. Refer to the [ROTORS project page on Github](https://github.com/ethz-asl/rotors_simulator) for more details.
 
 ```bash
 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu `lsb_release -sc` main" > /etc/apt/sources.list.d/ros-latest.list' 
