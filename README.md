@@ -24,7 +24,7 @@ If you have not created a catkin workspace, create one:
 ```bash
 mkdir ~/catkin_ws 
 mkdir ~/catkin_ws/src
-echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
+echo "source /opt/ros/kinetic/setup.bash" >> ~/.bashrc
 source ~/.bashrc
 ```
 
