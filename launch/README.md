@@ -16,7 +16,7 @@ A launch file contains other launch files and all dependencies, nodes, parameter
 <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" /> 
 <arg name="log_file" value="$(arg log_file)"/> 
 </include> 
-```xml
+```
 
 ### Nodes
 The following code includes the lee_position_controller_node ROS node from the rotors_control package. This package includes all references to the control gains and vehicle parameters that the controller needs. Three types of commands are possible: Trajectory, motor speed and pose. 
