@@ -1,0 +1,3 @@
+scripts/plots
+scripts/__pycache__/
+scripts/ros_readbagfile.pyc
