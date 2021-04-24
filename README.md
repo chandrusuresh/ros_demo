@@ -56,6 +56,7 @@ git clone https://github.com/chandrusuresh/ros_demo.git
 ```
 
 Clone header file that samples from a multivariate gaussian. Compatible with EIGEN.
+Note: This file is already included in this example. The following step is included for the sake of completeness and can be skipped.
 ```bash
 cd ~/Downloads
 git clone https://github.com/beniz/eigenmvn
