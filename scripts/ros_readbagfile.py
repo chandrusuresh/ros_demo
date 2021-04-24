@@ -150,14 +150,14 @@ def printMsgsInBagFile(args):
         # https://www.geeksforgeeks.org/print-without-newline-python/
         print("# timestamp (sec): {:.9f}".format(t.to_sec())),
         print("# - - -")
-        print(type(msg))
-        print(dir(msg))#orientation)
-        print("#################################")
-        print(msg.__getstate__())
-        # for m in dir(msg):
-        #     if m[0] != '_':
-        #         print(m + ":" + type(msg.getattr(m)))
-        print("#################################")
+        # print(type(msg))
+        # print(dir(msg))#orientation)
+        # print("#################################")
+        # print(msg.__getstate__())
+        # # for m in dir(msg):
+        # #     if m[0] != '_':
+        # #         print(m + ":" + type(msg.getattr(m)))
+        # print("#################################")
         # print(msg.serialize_numpy())
 
         # Print the message
