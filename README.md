@@ -49,10 +49,21 @@ This will show a mav take-off after 5 seconds and hover at a height of z = 1.
 
 If this succeeds, all the dependencies needed to run this project have been installed correctly.
 
-## Run the project
+## Download project code and miscellaneous dependencies
 ```bash
 cd ~/catkin_ws/src
 git clone https://github.com/chandrusuresh/ros_demo.git
+```
+
+Clone header file that samples from a multivariate gaussian. Compatible with EIGEN.
+```bash
+cd ~/Downloads
+git clone https://github.com/beniz/eigenmvn
+cp eigenmvn/eigenmvn.h ~/catkin_ws/src/ros_demo/include
+```
+
+## Run the project
+```bash
 cd ..
 catkin build
 source ~/catkin_ws/devel/setup.bash
