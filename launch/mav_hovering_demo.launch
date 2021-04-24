@@ -22,9 +22,10 @@
   </include>
 
   <group ns="$(arg mav_name)">
-    <include file="$(find rotors_gazebo)/launch/spawn_mav.launch">
+    <include file="$(find ros_demo)/launch/mav_spawn.launch">
       <arg name="mav_name" value="$(arg mav_name)" />
-      <arg name="model" value="$(find rotors_description)/urdf/mav_generic_odometry_sensor.gazebo" />
+      <!-- <arg name="model" value="$(find rotors_description)/urdf/mav_generic_odometry_sensor.gazebo" /> -->
+      <arg name="model" value="$(find ros_demo)/description/urdf/robot_with_sensors.xacro" />
       <arg name="enable_logging" value="$(arg enable_logging)" />
       <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
       <arg name="log_file" value="$(arg log_file)"/>
@@ -38,6 +39,6 @@
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
     <node name="data_logger" pkg="ros_demo" type="data_logger" />
-    <node pkg="rosbag" type="record" name="cmd" output="screen" args="-o /home/kakul/catkin_ws/bagfiles/$(arg mav_name)_cmd --topic /$(arg mav_name)/command/trajectory"/>
+    <node pkg="rosbag" type="record" name="cmd" output="screen" args="-o /home/kakul/catkin_ws/bagfiles/$(arg mav_name)_data_ --topic /$(arg mav_name)/imu /$(arg mav_name)/demo_imu /$(arg mav_name)/ground_truth/imu"/>
   </group>
 </launch>

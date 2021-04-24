@@ -133,7 +133,7 @@ add_executable(data_logger src/data_logger.cpp)
 target_link_libraries(data_logger ${catkin_LIBRARIES})
 add_dependencies(data_logger ${catkin_EXPORTED_TARGETS})
 
-foreach(dir launch)# models resource worlds)
+foreach(dir launch description)# models resource worlds)
    install(DIRECTORY ${dir}/
       DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/${dir})
 endforeach(dir)
