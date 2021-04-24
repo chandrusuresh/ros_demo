@@ -16,6 +16,6 @@
 namespace gazebo
 {
     
-};
+}
 
 #endif // IMU_PLUGIN_H
