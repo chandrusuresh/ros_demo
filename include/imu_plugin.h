@@ -1,9 +1,9 @@
 #ifndef IMU_PLUGIN_H
 #define IMU_PLUGIN_H
 
-#include <random>
+// #include <random>
 
-#include <Eigen/Core>
+// #include <Eigen/Core>
 #include <gazebo/common/common.hh>
 #include <gazebo/common/Plugin.hh>
 #include <gazebo/gazebo.hh>
@@ -21,7 +21,7 @@ using namespace ros_demo;
 
 namespace gazebo
 {
-    class GazeboImuPlugin : public ModelPlugin
+    class ImuPlugin : public ModelPlugin
     {
         public:
         GazeboImuPlugin();
@@ -69,6 +69,9 @@ namespace gazebo
 
         NoiseParameters gyro_params;
         NoiseParameters acc_params;
+
+        bool isInit = true;
+        void CreatePubsAndSubs();
 };
 }
 

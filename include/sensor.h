@@ -39,7 +39,7 @@ namespace ros_demo
             gyroscope = gyro;
             accelerometer = accmeter;
         }
-        VectorXd getGyroReading(VectorXd gnd_truth,double dt)
+        VectorXd getGyroscopeReading(VectorXd gnd_truth,double dt)
         {
             return gyroscope.getOutput(gnd_truth,dt);
         }

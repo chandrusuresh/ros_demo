@@ -9,10 +9,10 @@ namespace ros_demo
 {
     struct NoiseParameters
     {
-        double bias_correlation_time;
-        double white_noise_density;
-        double random_walk_density;
-        double turn_on_bias_density;
+        double bias_correlation_time = 1000;
+        double white_noise_density = 1;
+        double random_walk_density = 1;
+        double turn_on_bias_density = 1;
     };
     class NoiseModel
     {
@@ -25,6 +25,7 @@ namespace ros_demo
             params.random_walk_density = std_rw;
             params.turn_on_bias_density = std_turn_on_bias;
         }
+        NoiseModel(NoiseParameters p){params=p;}
         ~NoiseModel(){}
         double sample(double dt)
         {
@@ -46,7 +47,7 @@ namespace ros_demo
         private:
         NoiseParameters params;
         double bias = 0.0;
-        normal_distribution<double> standard_normal_distribution_;
+        normal_distribution<double> standard_normal_distribution_ = std::normal_distribution<double>(0.0, 1.0);
         default_random_engine random_generator_;
     };
 }
