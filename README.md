@@ -55,14 +55,6 @@ cd ~/catkin_ws/src
 git clone https://github.com/chandrusuresh/ros_demo.git
 ```
 
-Clone header file that samples from a multivariate gaussian. Compatible with EIGEN.
-Note: `eigenmvn.h` is already included in this repo. The following install step is included for the sake of completeness and can be skipped.
-```bash
-cd ~/Downloads
-git clone https://github.com/beniz/eigenmvn
-cp eigenmvn/eigenmvn.h ~/catkin_ws/src/ros_demo/include
-```
-
 ## Run the project
 ```bash
 cd ..
