@@ -20,6 +20,11 @@ namespace ros_demo
             noise_mdl.resize(tau.size());
             for (int i=0;i<tau.size();i++) noise_mdl[i] = NoiseModel(tau[i],std_wn[i],std_rw[i],std_tob[i]);
         }
+        Sensor(vector<NoiseParameters> params)
+        {
+            noise_mdl.resize(params.size());
+            for (int i=0;i<params.size();i++) noise_mdl[i] = NoiseModel(params[i]);
+        }
         VectorXd getOutput(VectorXd ground_truth,double dt)
         {
             VectorXd noise(noise_mdl.size());
@@ -34,6 +39,7 @@ namespace ros_demo
     class IMU
     {
         public:
+        IMU(){}
         IMU(Sensor gyro,Sensor accmeter)
         {
             gyroscope = gyro;

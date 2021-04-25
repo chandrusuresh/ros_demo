@@ -14,15 +14,13 @@
 #include "ConnectGazeboToRosTopic.pb.h"
 
 namespace gazebo {
-//     GazeboImuPlugin::GazeboImuPlugin()
-//     : ModelPlugin(),
-//       node_handle_(0),
-//       velocity_prev_W_(0, 0, 0),
-//       pubs_and_subs_created_(false) {}
+    IMUPlugin::IMUPlugin()
+    : ModelPlugin(),
+      node_handle_(0) {}
 
-// GazeboImuPlugin::~GazeboImuPlugin() {}
+    IMUPlugin::~IMUPlugin() {}
 
-    IMUPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
+    void IMUPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
     {
         // Store the pointer to the model
         model_ = _model;
@@ -88,8 +86,10 @@ namespace gazebo {
                             acc_params.turn_on_bias_density,
                             acc_params.turn_on_bias_density);
 
-        Sensor gyro(gyro_params);
-        Sensor acc(acc_params);
+        vector<NoiseParameters> gyro_params_vect(3,gyro_params);
+        vector<NoiseParameters> acc_params_vect(3,acc_params);
+        Sensor gyro(gyro_params_vect);
+        Sensor acc(acc_params_vect);
         IMU imu(gyro,acc);
 
         last_time_ = world_->GetSimTime();
@@ -97,7 +97,7 @@ namespace gazebo {
         // Listen to the update event. This event is broadcast every
         // simulation iteration.
         this->updateConnection_ = event::Events::ConnectWorldUpdateBegin(
-            boost::bind(&ImuPlugin::OnUpdate, this, _1));
+            boost::bind(&IMUPlugin::OnUpdate, this, _1));
 
         //==============================================//
         //====== POPULATE STATIC PARTS OF IMU MSG ======//
@@ -115,12 +115,12 @@ namespace gazebo {
             switch (i) {
             case 0:
                 imu_message_.add_angular_velocity_covariance(
-                    pow(gyro_params.white_nose_density,2));
+                    pow(gyro_params.white_noise_density,2));
 
                 imu_message_.add_orientation_covariance(-1.0);
 
                 imu_message_.add_linear_acceleration_covariance(
-                    pow(acc_params.white_nose_density,2));
+                    pow(acc_params.white_noise_density,2));
                 break;
             case 1:
             case 2:
@@ -133,12 +133,12 @@ namespace gazebo {
                 break;
             case 4:
                 imu_message_.add_angular_velocity_covariance(
-                    pow(gyro_params.white_nose_density,2));
+                    pow(gyro_params.white_noise_density,2));
 
                 imu_message_.add_orientation_covariance(-1.0);
 
                 imu_message_.add_linear_acceleration_covariance(
-                    pow(acc_params.white_nose_density,2));
+                    pow(acc_params.white_noise_density,2));
                 break;
             case 5:
             case 6:
@@ -151,12 +151,12 @@ namespace gazebo {
                 break;
             case 8:
                 imu_message_.add_angular_velocity_covariance(
-                    pow(gyro_params.white_nose_density,2));
+                    pow(gyro_params.white_noise_density,2));
 
                 imu_message_.add_orientation_covariance(-1.0);
 
                 imu_message_.add_linear_acceleration_covariance(
-                    pow(acc_params.white_nose_density,2));
+                    pow(acc_params.white_noise_density,2));
                 break;
             }
         }
@@ -164,7 +164,7 @@ namespace gazebo {
         gravity_W_ = world_->GetPhysicsEngine()->GetGravity();
         // imu_parameters_.gravity_magnitude = gravity_W_.GetLength();
     }
-    IMUPlugin::OnUpdate(const common::UpdateInfo& _info)
+    void IMUPlugin::OnUpdate(const common::UpdateInfo& _info)
     {
         if (isInit)
         {
@@ -210,21 +210,21 @@ namespace gazebo {
         imu_message_.set_allocated_orientation(orientation);
 
         gazebo::msgs::Vector3d* linear_acceleration = new gazebo::msgs::Vector3d();
-        linear_acceleration->set_x(linear_acceleration_I[0]);
-        linear_acceleration->set_y(linear_acceleration_I[1]);
-        linear_acceleration->set_z(linear_acceleration_I[2]);
+        linear_acceleration->set_x(acc_wNoise[0]);
+        linear_acceleration->set_y(acc_wNoise[1]);
+        linear_acceleration->set_z(acc_wNoise[2]);
         imu_message_.set_allocated_linear_acceleration(linear_acceleration);
 
         gazebo::msgs::Vector3d* angular_velocity = new gazebo::msgs::Vector3d();
-        angular_velocity->set_x(angular_velocity_I[0]);
-        angular_velocity->set_y(angular_velocity_I[1]);
-        angular_velocity->set_z(angular_velocity_I[2]);
+        angular_velocity->set_x(gyro_wNoise[0]);
+        angular_velocity->set_y(gyro_wNoise[1]);
+        angular_velocity->set_z(gyro_wNoise[2]);
         imu_message_.set_allocated_angular_velocity(angular_velocity);
 
         // Publish the IMU message
         imu_pub_->Publish(imu_message_);
     }
-    void ImuPlugin::CreatePubsAndSubs()
+    void IMUPlugin::CreatePubsAndSubs()
     {
         // Create temporary "ConnectGazeboToRosTopic" publisher and message
         gazebo::transport::PublisherPtr connect_gazebo_to_ros_topic_pub =
@@ -249,5 +249,5 @@ namespace gazebo {
                                                 true);
     }
 
-    GZ_REGISTER_MODEL_PLUGIN(GazeboImuPlugin);
+    GZ_REGISTER_MODEL_PLUGIN(IMUPlugin);
 }

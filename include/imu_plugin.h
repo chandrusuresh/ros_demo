@@ -13,7 +13,7 @@
 
 #include "rotors_gazebo_plugins/common.h"
 
-#include "sensor.h";
+#include "sensor.h"
 #include "sensor_noise.h"
 
 using namespace std;
@@ -21,11 +21,11 @@ using namespace ros_demo;
 
 namespace gazebo
 {
-    class ImuPlugin : public ModelPlugin
+    class IMUPlugin : public ModelPlugin
     {
         public:
-        GazeboImuPlugin();
-        ~GazeboImuPlugin();
+        IMUPlugin();
+        ~IMUPlugin();
         void Publish();
 
         protected:
@@ -34,7 +34,7 @@ namespace gazebo
         void OnUpdate(const common::UpdateInfo&);
         
         private:
-        bool pubs_and_subs_created_;
+        bool isInit = true;
         void CreatePubsAndSubs();
 
 
@@ -69,10 +69,7 @@ namespace gazebo
 
         NoiseParameters gyro_params;
         NoiseParameters acc_params;
-
-        bool isInit = true;
-        void CreatePubsAndSubs();
-};
+    };
 }
 
 #endif // IMU_PLUGIN_H

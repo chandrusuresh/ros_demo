@@ -9,6 +9,7 @@ namespace ros_demo
 {
     struct NoiseParameters
     {
+        public:
         double bias_correlation_time = 1000;
         double white_noise_density = 1;
         double random_walk_density = 1;
