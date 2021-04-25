@@ -90,7 +90,7 @@ namespace gazebo {
         vector<NoiseParameters> acc_params_vect(3,acc_params);
         Sensor gyro(gyro_params_vect);
         Sensor acc(acc_params_vect);
-        IMU imu(gyro,acc);
+        imu = IMU(gyro,acc);
 
         last_time_ = world_->GetSimTime();
 
