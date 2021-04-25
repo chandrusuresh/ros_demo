@@ -78,7 +78,7 @@ pkg_check_modules(PROTOBUF protobuf)
 # endforeach()
 
 # Get lists of all .proto files in the msgs directory
-file(GLOB msgs msgs/*.proto)
+file(GLOB msgs /home/kakul/catkin_ws/src/rotors_simulator/rotors_gazebo_plugins/msgs/*.proto)
 
 # Finally, generate the .cpp files from the .proto files
 PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${msgs})
@@ -87,7 +87,7 @@ list(APPEND EXTLIBS ${PROTOBUF_LIBRARIES})
 # Create a shared library of protobuf messages (.so extension on Linux platforms)
 add_library(mav_msgs SHARED ${PROTO_SRCS})
 target_link_libraries(mav_msgs ${PROTOBUF_LIBRARY} gazebo_msgs)
-# target_link_libraries(mav_msgs ${EXTLIBS})
+
 
 # This causes mav_msgs to be linked with every created library in this file from this
 # point forward.
