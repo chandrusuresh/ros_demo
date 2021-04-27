@@ -3,6 +3,7 @@
   <arg name="world_name" default="basic"/>
   <arg name="enable_logging" default="false" />
   <arg name="enable_ground_truth" default="true" />
+  <arg name="use_sim_time" value="false" />
   <arg name="log_file" default="$(arg mav_name)" />
   <arg name="debug" default="false"/>
   <arg name="gui" default="true"/>
@@ -39,6 +40,6 @@
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
     <node name="data_logger" pkg="ros_demo" type="data_logger" />
-    <node pkg="rosbag" type="record" name="cmd" output="screen" args="-o /home/kakul/catkin_ws/bagfiles/$(arg mav_name)_data_ --topic /$(arg mav_name)/imu /$(arg mav_name)/demo_imu /$(arg mav_name)/ground_truth/imu"/>
+    <node pkg="rosbag" type="record" name="cmd" output="screen" args="-o /home/kakul/catkin_ws/bagfiles/$(arg mav_name)_data_ --topic /$(arg mav_name)/imu /$(arg mav_name)/demo_imu"/>
   </group>
 </launch>
