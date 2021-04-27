@@ -112,6 +112,26 @@ target_link_libraries(ros_demo_imu_plugin ${target_linking_LIBRARIES})
 add_dependencies(ros_demo_imu_plugin ${catkin_EXPORTED_TARGETS})
 list(APPEND targets_to_install ros_demo_imu_plugin)
 
+####################
+# add_library(lee_position_controller src/library/lee_position_controller.cpp)
+# target_link_libraries(lee_position_controller ${catkin_LIBRARIES})
+# add_dependencies(lee_position_controller ${catkin_EXPORTED_TARGETS})
+
+add_executable(state_estimation_node src/state_estimation_node.cpp)
+add_dependencies(state_estimation_node ${catkin_EXPORTED_TARGETS})
+target_link_libraries(state_estimation_node ${catkin_LIBRARIES})#lee_position_controller ${catkin_LIBRARIES})
+
+# install(TARGETS lee_position_controller roll_pitch_yawrate_thrust_controller
+#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+# )
+
+install(TARGETS state_estimation_node
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+####################
 foreach(dir include launch description)# models resource worlds)
    install(DIRECTORY ${dir}/
       DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/${dir})
