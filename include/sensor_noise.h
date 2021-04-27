@@ -2,6 +2,7 @@
 #define SENSOR_NOISE_H
 
 #include <random>
+#include <chrono>
 
 using namespace std;
 
@@ -18,22 +19,27 @@ namespace ros_demo
     class NoiseModel
     {
         public:
-        NoiseModel(){}
+        NoiseModel(){init();}
         NoiseModel(double tau,double std_wn, double std_rw,double std_turn_on_bias)
         {
+            init();
             params.bias_correlation_time = tau;
             params.white_noise_density = std_wn;
             params.random_walk_density = std_rw;
             params.turn_on_bias_density = std_turn_on_bias;
+            turn_on_bias = params.turn_on_bias_density* standard_normal_distribution_(random_generator_);
         }
-        NoiseModel(NoiseParameters p){params=p;}
+        NoiseModel(NoiseParameters p)
+        {
+            init();
+            params=p;
+            turn_on_bias = params.turn_on_bias_density* standard_normal_distribution_(random_generator_);
+        }
         ~NoiseModel(){}
         double sample(double dt)
         {
             assert(dt > 0);
             double noise = 0.0;
-
-            double turn_on_bias = params.turn_on_bias_density* standard_normal_distribution_(random_generator_);
 
             double std_wn_d = params.white_noise_density/sqrt(dt);
 
@@ -48,8 +54,14 @@ namespace ros_demo
         private:
         NoiseParameters params;
         double bias = 0.0;
-        normal_distribution<double> standard_normal_distribution_ = std::normal_distribution<double>(0.0, 1.0);
         default_random_engine random_generator_;
+        normal_distribution<double> standard_normal_distribution_ = std::normal_distribution<double>(0.0, 1.0);
+        double turn_on_bias;
+        void init()
+        {
+            unsigned seed = chrono::system_clock::now().time_since_epoch().count();
+            random_generator_.seed(seed);
+        }        
     };
 }
 
