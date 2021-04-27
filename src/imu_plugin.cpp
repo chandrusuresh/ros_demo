@@ -62,7 +62,7 @@ namespace gazebo {
         getSdfParam<double>(_sdf, "gyroscopeNoiseDensity",
                             gyro_params.white_noise_density,
                             gyro_params.white_noise_density);
-        getSdfParam<double>(_sdf, "gyroscopeBiasRandomWalk",
+        getSdfParam<double>(_sdf, "gyroscopeRandomWalk",
                             gyro_params.random_walk_density,
                             gyro_params.random_walk_density);
         getSdfParam<double>(_sdf, "gyroscopeBiasCorrelationTime",
