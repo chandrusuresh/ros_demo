@@ -45,6 +45,10 @@ namespace ros_demo
         // Sigma Point predictions
         // Xsig_pred_ = MatrixXd(n_x_,n_sig_);
         Xsig_pred_ = MatrixXd(n_aug_,n_sig_);
+
+        // Initial q_mean and error
+        q_mean = VectorXd(4);
+        q_err  = MatrixXd(3,n_sig_);
     }
     UKF::~UKF(){}
     void UKF::Prediction(double delta_t)
@@ -61,7 +65,9 @@ namespace ros_demo
         P_next.fill(0.0);
         for (int i=0; i<n_sig_;i++)
         {
-            VectorXd del_x = Xsig_pred_.col(i)-x_next;
+            VectorXd del_x(x_next.size()-1);
+            del_x.head(3) = q_err.col(i);
+            del_x.tail(12) = Xsig_pred_.col(i).tail(12) - x_next.tail(12);            
             P_next += weights_(i)*del_x*del_x.transpose();
         }
         x_ = x_next;
@@ -69,62 +75,63 @@ namespace ros_demo
     }
     void UKF::UpdateIMU(sensor_msgs::ImuConstPtr& imu_meas)
     {
-            int n_z = 6;
-            VectorXd z = VectorXd(n_z);
-            z << imu_meas->angular_velocity.x,imu_meas->angular_velocity.y,imu_meas->angular_velocity.z,
-                 imu_meas->linear_acceleration.x,imu_meas->linear_acceleration.y,imu_meas->linear_acceleration.z;
+        int n_z = 6;
+        VectorXd z = VectorXd(n_z);
+        z << imu_meas->angular_velocity.x,imu_meas->angular_velocity.y,imu_meas->angular_velocity.z,
+                imu_meas->linear_acceleration.x,imu_meas->linear_acceleration.y,imu_meas->linear_acceleration.z;
+        
+        MatrixXd Zsig = MatrixXd(n_z,n_sig_);
+        VectorXd z_pred = VectorXd(n_z);
+        z_pred.fill(0.0);
+        for (int i=0; i < n_sig_; i++)
+        {
+            VectorXd x = Xsig_pred_.col(i);
+            VectorXd z1(n_z);
+            z1.head(3) = x.segment(10,12);
             
-            MatrixXd Zsig = MatrixXd(n_z,n_sig_);
-            VectorXd z_pred = VectorXd(n_z);
-            z_pred.fill(0.0);
-            for (int i=0; i < n_sig_; i++)
-            {
-                VectorXd x = Xsig_pred_.col(i);
-                VectorXd z1(n_z);
-                z1.head(3) = x.segment(10,12);
-                
-                Quaterniond q;
-                q.w() = x(0);
-                q.vec() = x.segment(1,3);
-                Quaterniond qi = q.reverse();
-                VectorXd gravity_comp = qi*gravity_W_;
+            Quaterniond q;
+            q.w() = x(0);
+            q.vec() = x.segment(1,3);
+            Quaterniond qi = q.inverse();
+            VectorXd gravity_comp = qi*gravity_W_;
 
-                z1.tail(3) = x.tail(3)-gravity_comp;
-                Zsig.col(i) = z1;
-                z_pred += weights_(i)*z1;
-            }
-                        
-            MatrixXd R = MatrixXd::Zero(n_z,n_z);
-            int n_dum = n_sig_-n_x_;
-            for (int i=0;i<n_dum/2;i++) R(i,i) = std_w_meas_*std_w_meas_;
-            for (int i=n_dum/2;i<n_dum;i++) R(i,i) = std_a_meas_*std_a_meas_;
-            
-            MatrixXd Tc = MatrixXd::Zero(n_sig_,n_z);
-            MatrixXd S = R;
-            for (int i=0; i<n_sig_;i++)
-            {
-                VectorXd delta_z = Zsig.col(i)-z_pred;
-                VectorXd delta_x = Xsig_pred_.col(i)-x_;
-                
-                S += weights_(i)*delta_z*delta_z.transpose();
-                Tc += weights_(i)*delta_x*delta_z.transpose();
-            }
-            MatrixXd K = Tc*S.inverse();
-            VectorXd z_diff =z-z_pred;
-            while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
-            while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
-            x_ += K*(z_diff);
-            while (x_(3)> M_PI) x_(3)-=2.*M_PI;
-            while (x_(3)<-M_PI) x_(3)+=2.*M_PI;
-        //    while (x_(4)> M_PI) x_(4)-=2.*M_PI;
-        //    while (x_(4)<-M_PI) x_(4)+=2.*M_PI;
-            P_ -= K*S*K.transpose();
-            double nis_lidar = (z_diff).transpose()*S.inverse()*(z_diff);
-            ofstream fout;
-            fout.open ("nis_stdAcc_" + std::to_string(std_a_) + "_stdYawDD_" + std::to_string(std_yawdd_) + ".csv",ios::app);
-            fout << nis_lidar << std::endl;
-            fout.close();
+            z1.tail(3) = x.tail(3)-gravity_comp;
+            Zsig.col(i) = z1;
+            z_pred += weights_(i)*z1;
         }
+                    
+        MatrixXd R = MatrixXd::Zero(n_z,n_z);
+        int n_dum = n_sig_-n_x_;
+        for (int i=0;i<n_dum/2;i++) R(i,i) = std_w_meas_*std_w_meas_;
+        for (int i=n_dum/2;i<n_dum;i++) R(i,i) = std_a_meas_*std_a_meas_;
+        
+        MatrixXd Tc = MatrixXd::Zero(n_sig_,n_z);
+        MatrixXd S = R;
+        for (int i=0; i<n_sig_;i++)
+        {
+            VectorXd delta_z = Zsig.col(i)-z_pred;
+            VectorXd delta_x(x_.size()-1);
+            delta_x.head(3) = q_err.col(i);
+            delta_x.tail(12) = Xsig_pred_.col(i).tail(12) - x_.tail(12);
+            VectorXd delta_x = Xsig_pred_.col(i)-x_;
+            
+            S += weights_(i)*delta_z*delta_z.transpose();
+            Tc += weights_(i)*delta_x*delta_z.transpose();
+        }
+        MatrixXd K = Tc*S.inverse();
+        VectorXd z_diff =z-z_pred;
+        VectorXd new_x = K*(z_diff);
+        x_.tail(12) += new_x.tail(12);
+        VectorXd q_tmp = VecToQuaternionMath(new_x.head(3));
+        x_.head(4) = MultiplyQuaternions(q_tmp,x_.head(4));
+        
+        P_ -= K*S*K.transpose();
+        // double nis_lidar = (z_diff).transpose()*S.inverse()*(z_diff);
+        // ofstream fout;
+        // fout.open ("nis_stdAcc_" + std::to_string(std_a_) + "_stdYawDD_" + std::to_string(std_yawdd_) + ".csv",ios::app);
+        // fout << nis_lidar << std::endl;
+        // fout.close();
+    }
     MatrixXd UKF::GenerateSigmaPoints()
     {
         VectorXd x_st = VectorXd(n_aug_);
@@ -183,7 +190,7 @@ namespace ros_demo
         
         VectorXd x_next = VectorXd(x_.size());
         x_next.fill(0.0);
-        
+        MatrixXd q_sig(4,n_sig_);
         for(int i=0; i < Xsig_aug.cols();i++)
         {
             VectorXd x_i = Xsig_aug.col(i);
@@ -195,7 +202,7 @@ namespace ros_demo
 
             VectorXd del_q = VecToQuaternionMath(w*delta_t);
             VectorXd new_q = MultiplyQuaternions(quat,del_q);
-
+            q_sig.col(i) = new_q;
             s += v*delta_t + 0.5*acc*dt2;
             v += acc*delta_t;
 
@@ -203,14 +210,16 @@ namespace ros_demo
             x_new << new_q,s,v,w,acc;
             Xsig_pred.col(i) = x_new;
             x_next += weights_(i)*Xsig_pred.col(i);
-            
         }
+        QuaternionAverage(q_sig,x_.head(4));
+        x_next.head(4) = q_mean;
         //write result
         Xsig_pred_ = Xsig_pred;
         return x_next;
     }
-    void UKF::QuaternionAverage(MatrixXd q_sig,VectorXd q_prev,VectorXd& q_mean,MatrixXd& err)
+    void UKF::QuaternionAverage(MatrixXd q_sig,VectorXd q_prev)
     {
+        // hyper parameters for the algorithm
         double epsilon = 0.0001;
         int max_iter = 1000;
 
@@ -303,7 +312,7 @@ namespace ros_demo
     
         return q_inv;
     }
-    VectorXd UKF:ExpQuaternion(VectorXd q)
+    VectorXd UKF::ExpQuaternion(VectorXd q)
     {
         double qs = q(0);
         VectorXd qv(3);

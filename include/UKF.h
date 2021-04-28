@@ -87,12 +87,13 @@ namespace ros_demo
         VectorXd VecToQuaternionMath(VectorXd angle);
         Quaterniond VecToQuaternion(VectorXd angle);
         VectorXd MultiplyQuaternions(VectorXd p, VectorXd q);
-        void QuaternionAverage(MatrixXd q_sig,VectorXd q_prev,VectorXd& q_mean,MatrixXd& err);
+        void QuaternionAverage(MatrixXd q_sig,VectorXd q_prev);
         VectorXd InverseQuaternion(VectorXd q);
         VectorXd ExpQuaternion(VectorXd q);
         private:
-        VectorXd gravity_W_(3);
-        gravity_W_ << 0,0,9.81;
+        VectorXd gravity_W_ = {0,0,9.81};
+        VectorXd q_mean;
+        MatrixXd q_err;
     };
 }
 
