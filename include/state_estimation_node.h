@@ -10,6 +10,7 @@
 
 #include <ros/ros.h>
 #include <string>
+#include "UKF.h"
 
 using namespace std;
 namespace ros_demo {
@@ -40,6 +41,8 @@ namespace ros_demo {
         ros::Publisher odometry_pub_;
 
         void ImuMsgCallback(const sensor_msgs::ImuConstPtr& imu_msg);
+
+        UKF ukf_;
     };
 }
 

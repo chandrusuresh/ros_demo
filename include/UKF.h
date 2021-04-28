@@ -8,6 +8,7 @@
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
+using namespace Eigen;
 
 #include <sensor_msgs/Imu.h>
 
@@ -78,7 +79,7 @@ namespace ros_demo
         long long time_us_;                  
         long long previous_timestamp_;
 
-
+        void set_init_position(VectorXd init_x);
         void ProcessMeasurement(sensor_msgs::ImuConstPtr& imu_meas);
         void Prediction(double delta_t);
         void UpdateIMU(sensor_msgs::ImuConstPtr& imu_meas);
@@ -91,7 +92,7 @@ namespace ros_demo
         VectorXd InverseQuaternion(VectorXd q);
         VectorXd ExpQuaternion(VectorXd q);
         private:
-        VectorXd gravity_W_ = {0,0,9.81};
+        VectorXd gravity_W_;
         VectorXd q_mean;
         MatrixXd q_err;
     };

@@ -6,8 +6,10 @@ namespace ros_demo
 {
     UKF::UKF()
     {
-        // Dimension of state vector: s,v,q
-        n_x_ = 10;
+        gravity_W_ << 0,0,9.81;
+        
+        // Dimension of state vector: s,v,q,w,acc
+        n_x_ = 16;
         // 6 dummy variables in acc, w in x,y & z
         n_aug_ = 16;
         n_sig_ = 2*n_aug_ + 1;
@@ -20,12 +22,6 @@ namespace ros_demo
             weight = 0.5/(lambda_+n_aug_);
             weights_(i) = weight;
         }
-
-        // initial state vector
-        x_ = VectorXd(n_x_);
-
-        // initial covariance matrix
-        P_ = MatrixXd(n_x_-1,n_x_-1);
 
         // Process noise standard deviation for position in m
         std_s_ = 0.1;
@@ -42,9 +38,20 @@ namespace ros_demo
         // Measurement noise for angular velocity
         std_w_meas_ = 0.1;
 
+        // initial state vector
+        x_ = VectorXd(n_x_);
+        x_.fill(0.0);
+
+        // initial covariance matrix
+        P_ = MatrixXd(n_x_-1,n_x_-1);
+        for (int i=0;i<3;i++) P_(i,i) = std_phi_*std_phi_;
+        for (int i=3;i<6;i++) P_(i,i) = std_s_*std_s_;
+        for (int i=6;i<9;i++) P_(i,i) = std_v_*std_v_;
+        for (int i=9;i<12;i++) P_(i,i) = std_w_meas_*std_w_meas_;
+        for (int i=12;i<n_x_;i++) P_(i,i) = std_a_meas_*std_a_meas_;
+
         // Sigma Point predictions
-        // Xsig_pred_ = MatrixXd(n_x_,n_sig_);
-        Xsig_pred_ = MatrixXd(n_aug_,n_sig_);
+        Xsig_pred_ = MatrixXd(n_x_,n_sig_);
 
         // Initial q_mean and error
         q_mean = VectorXd(4);
@@ -61,7 +68,7 @@ namespace ros_demo
         //write predicted sigma points into right column
         VectorXd x_next = SigmaPointPrediction(delta_t,Xsig_aug);
 
-        MatrixXd P_next = MatrixXd(n_x_,n_x_);
+        MatrixXd P_next = MatrixXd(n_x_-1,n_x_-1);
         P_next.fill(0.0);
         for (int i=0; i<n_sig_;i++)
         {
@@ -78,7 +85,7 @@ namespace ros_demo
         int n_z = 6;
         VectorXd z = VectorXd(n_z);
         z << imu_meas->angular_velocity.x,imu_meas->angular_velocity.y,imu_meas->angular_velocity.z,
-                imu_meas->linear_acceleration.x,imu_meas->linear_acceleration.y,imu_meas->linear_acceleration.z;
+             imu_meas->linear_acceleration.x,imu_meas->linear_acceleration.y,imu_meas->linear_acceleration.z;
         
         MatrixXd Zsig = MatrixXd(n_z,n_sig_);
         VectorXd z_pred = VectorXd(n_z);
@@ -113,7 +120,6 @@ namespace ros_demo
             VectorXd delta_x(x_.size()-1);
             delta_x.head(3) = q_err.col(i);
             delta_x.tail(12) = Xsig_pred_.col(i).tail(12) - x_.tail(12);
-            VectorXd delta_x = Xsig_pred_.col(i)-x_;
             
             S += weights_(i)*delta_z*delta_z.transpose();
             Tc += weights_(i)*delta_x*delta_z.transpose();
@@ -184,7 +190,7 @@ namespace ros_demo
     }
     VectorXd UKF::SigmaPointPrediction(double delta_t, MatrixXd Xsig_aug)
     {
-        MatrixXd Xsig_pred = MatrixXd(n_aug_,n_sig_);
+        MatrixXd Xsig_pred = MatrixXd(n_x_,n_sig_);
 
         double dt2 = delta_t*delta_t;
         
@@ -233,7 +239,7 @@ namespace ros_demo
         while (t<max_iter)
         {
             VectorXd q_prev_inv = InverseQuaternion(q_prev);
-            VectorXd err_mean(err.rows(),err.cols());
+            VectorXd err_mean(q_err.rows(),q_err.cols());
             err_mean.fill(0.0);
             for (int i=0;i<n_sig_;i++)
             {
@@ -241,27 +247,28 @@ namespace ros_demo
                 qi.normalize();
                 qe.col(i) = MultiplyQuaternions(qi,q_prev_inv);
 
-                double qs = qe(0);
-                VectorXd qv = qe.segment(1,3);
+                double qs = qe.col(i)(0);
+                VectorXd qv = qe.col(i).segment(1,3);
                 double qe_norm = qe.col(i).norm();
                 
-                if (qv.norm() < epsilon) err.col(i).fill(0.0);
+                if (qv.norm() < epsilon) q_err.col(i).fill(0.0);
                 else
                 {
-                    if (qe_norm < epsilon) err.col(i).fill(0.0);
+                    if (qe_norm < epsilon) q_err.col(i).fill(0.0);
                     else
                     {
                         temp(0) = log(qe_norm);
                         qv.normalize();
                         temp.tail(3) = qv*acos(qs/qe_norm);
-                        err.col(i) = 2*temp.tail(3);
-                        double err_norm = err.col(i).norm();
+                        q_err.col(i) = 2*temp.tail(3);
+                        double err_norm = q_err.col(i).norm();
                         double num = err_norm + M_PIl;
-                        while (num >= 2*M_PIl) num -= 2*M_PIl;
-                        err.col(i) = ((-M_PIl + num)/err_norm)*err.col(i);
+                        while (num >=  2*M_PIl) num -= 2*M_PIl;
+                        while (num <= -2*M_PIl) num += 2*M_PIl;
+                        q_err.col(i) = ((-M_PIl + num)/err_norm)*q_err.col(i);
                     }
                 }
-                err_mean += err.col(i)/double(n_sig_);
+                err_mean += q_err.col(i)/double(n_sig_);
             }
             VectorXd temp2(4);
             temp2 << 0.0,err_mean/2.0;
@@ -305,10 +312,10 @@ namespace ros_demo
     VectorXd UKF::InverseQuaternion(VectorXd q)
     {
         VectorXd q_inv(4);
-        q_inv(0) = q(0)/ pow(quaternion.norm(q),2);
-        q_inv(1) = -q(1)/ pow(quaternion.norm(q),2);
-        q_inv(2) = -q(2)/ pow(quaternion.norm(q),2);
-        q_inv(3) = -q(3)/ pow(quaternion.norm(q),2);
+        q_inv(0) = q(0)/ pow(q.norm(),2);
+        q_inv(1) = -q(1)/ pow(q.norm(),2);
+        q_inv(2) = -q(2)/ pow(q.norm(),2);
+        q_inv(3) = -q(3)/ pow(q.norm(),2);
     
         return q_inv;
     }
@@ -316,13 +323,12 @@ namespace ros_demo
     {
         double qs = q(0);
         VectorXd qv(3);
-        qv << = q(1),q(2),q(3);
-        qv_norm = qv.norm();
+        qv << q(1),q(2),q(3);
+        double qv_norm = qv.norm();
         VectorXd exp_q(4);
-        exp_q(0) = cos(qv_norm)
+        exp_q(0) = cos(qv_norm);
         qv.normalize();
-        exp_q.segment(1,3) = sin(qv_norm)*qv
-        
+        exp_q.segment(1,3) = sin(qv_norm)*qv;
         return exp(qs)*exp_q;
     }
 }

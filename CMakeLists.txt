@@ -103,23 +103,19 @@ add_executable(data_logger src/data_logger.cpp)
 target_link_libraries(data_logger ${catkin_LIBRARIES})
 add_dependencies(data_logger ${catkin_EXPORTED_TARGETS})
 
-# add_executable(imu_plugin src/imu_plugin.cpp)
-# target_link_libraries(imu_plugin ${catkin_LIBRARIES} ${target_linking_LIBRARIES} )
-# add_dependencies(imu_plugin ${catkin_EXPORTED_TARGETS})
-
 add_library(ros_demo_imu_plugin SHARED src/imu_plugin.cpp)
 target_link_libraries(ros_demo_imu_plugin ${target_linking_LIBRARIES})
 add_dependencies(ros_demo_imu_plugin ${catkin_EXPORTED_TARGETS})
 list(APPEND targets_to_install ros_demo_imu_plugin)
 
 ####################
-# add_library(lee_position_controller src/library/lee_position_controller.cpp)
-# target_link_libraries(lee_position_controller ${catkin_LIBRARIES})
-# add_dependencies(lee_position_controller ${catkin_EXPORTED_TARGETS})
+add_library(UKF src/UKF.cpp)
+target_link_libraries(UKF ${catkin_LIBRARIES})
+add_dependencies(UKF ${catkin_EXPORTED_TARGETS})
 
 add_executable(state_estimation_node src/state_estimation_node.cpp)
 add_dependencies(state_estimation_node ${catkin_EXPORTED_TARGETS})
-target_link_libraries(state_estimation_node ${catkin_LIBRARIES})#lee_position_controller ${catkin_LIBRARIES})
+target_link_libraries(state_estimation_node UKF ${catkin_LIBRARIES})#lee_position_controller ${catkin_LIBRARIES})
 
 # install(TARGETS lee_position_controller roll_pitch_yawrate_thrust_controller
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

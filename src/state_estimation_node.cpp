@@ -25,6 +25,7 @@ namespace ros_demo
         rotors_control::GetRosParameter(private_nh_, "mav_name",mav_name_,&mav_name_);
         rotors_control::GetRosParameter(private_nh_, "imu_topic_name",imu_topic_name_,&imu_topic_name_);
         rotors_control::GetRosParameter(private_nh_, "pub_topic_name",pub_topic_name_,&pub_topic_name_);
+        ukf_ = UKF();
     }
     void StateEstimationNode::Publish() {}
 
