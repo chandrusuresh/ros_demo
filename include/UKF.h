@@ -81,12 +81,18 @@ namespace ros_demo
 
         void ProcessMeasurement(sensor_msgs::ImuConstPtr& imu_meas);
         void Prediction(double delta_t);
-        void Update(VectorXd meas);
+        void UpdateIMU(sensor_msgs::ImuConstPtr& imu_meas);
         MatrixXd GenerateSigmaPoints();
         VectorXd SigmaPointPrediction(double delta_t, MatrixXd Xsig_aug);
-        VectorXd AngleToQuaternionMath(VectorXd angle);
-        Quaterniond AngleToQuaternion(VectorXd angle);
+        VectorXd VecToQuaternionMath(VectorXd angle);
+        Quaterniond VecToQuaternion(VectorXd angle);
         VectorXd MultiplyQuaternions(VectorXd p, VectorXd q);
+        void QuaternionAverage(MatrixXd q_sig,VectorXd q_prev,VectorXd& q_mean,MatrixXd& err);
+        VectorXd InverseQuaternion(VectorXd q);
+        VectorXd ExpQuaternion(VectorXd q);
+        private:
+        VectorXd gravity_W_(3);
+        gravity_W_ << 0,0,9.81;
     };
 }
 

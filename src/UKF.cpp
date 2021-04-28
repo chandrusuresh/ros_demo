@@ -6,11 +6,26 @@ namespace ros_demo
 {
     UKF::UKF()
     {
+        // Dimension of state vector: s,v,q
+        n_x_ = 10;
+        // 6 dummy variables in acc, w in x,y & z
+        n_aug_ = 16;
+        n_sig_ = 2*n_aug_ + 1;
+        lambda_ = 3 - n_aug_;
+        weights_ = VectorXd(n_sig_);
+        double weight = lambda_/(lambda_+n_aug_);
+        weights_(0) = weight;
+        for (int i=1; i < n_sig_; i++)
+        {
+            weight = 0.5/(lambda_+n_aug_);
+            weights_(i) = weight;
+        }
+
         // initial state vector
-        x_ = VectorXd(5);
+        x_ = VectorXd(n_x_);
 
         // initial covariance matrix
-        P_ = MatrixXd(5, 5);
+        P_ = MatrixXd(n_x_-1,n_x_-1);
 
         // Process noise standard deviation for position in m
         std_s_ = 0.1;
@@ -27,23 +42,9 @@ namespace ros_demo
         // Measurement noise for angular velocity
         std_w_meas_ = 0.1;
 
-        // Dimension of state vector: s,v,q
-        n_x_ = 10;
-
-        // 6 dummy variables in acc, w in x,y & z
-        n_aug_ = 16;
-        n_sig_ = 2*n_aug_ + 1;
-        lambda_ = 3 - n_aug_;
-        weights_ = VectorXd(n_sig_);
-        double weight = lambda_/(lambda_+n_aug_);
-        weights_(0) = weight;
-        for (int i=1; i < n_sig_; i++)
-        {
-            weight = 0.5/(lambda_+n_aug_);
-            weights_(i) = weight;
-        }
-
-        Xsig_pred_ = MatrixXd(n_x_,n_sig_);
+        // Sigma Point predictions
+        // Xsig_pred_ = MatrixXd(n_x_,n_sig_);
+        Xsig_pred_ = MatrixXd(n_aug_,n_sig_);
     }
     UKF::~UKF(){}
     void UKF::Prediction(double delta_t)
@@ -61,15 +62,69 @@ namespace ros_demo
         for (int i=0; i<n_sig_;i++)
         {
             VectorXd del_x = Xsig_pred_.col(i)-x_next;
-            while (del_x(3)> M_PI) del_x(3)-=2.*M_PI;
-            while (del_x(3)<-M_PI) del_x(3)+=2.*M_PI;
-    //        while (del_x(4)> M_PI) del_x(4)-=2.*M_PI;
-    //        while (del_x(4)<-M_PI) del_x(4)+=2.*M_PI;
             P_next += weights_(i)*del_x*del_x.transpose();
         }
         x_ = x_next;
         P_ = P_next;
     }
+    void UKF::UpdateIMU(sensor_msgs::ImuConstPtr& imu_meas)
+    {
+            int n_z = 6;
+            VectorXd z = VectorXd(n_z);
+            z << imu_meas->angular_velocity.x,imu_meas->angular_velocity.y,imu_meas->angular_velocity.z,
+                 imu_meas->linear_acceleration.x,imu_meas->linear_acceleration.y,imu_meas->linear_acceleration.z;
+            
+            MatrixXd Zsig = MatrixXd(n_z,n_sig_);
+            VectorXd z_pred = VectorXd(n_z);
+            z_pred.fill(0.0);
+            for (int i=0; i < n_sig_; i++)
+            {
+                VectorXd x = Xsig_pred_.col(i);
+                VectorXd z1(n_z);
+                z1.head(3) = x.segment(10,12);
+                
+                Quaterniond q;
+                q.w() = x(0);
+                q.vec() = x.segment(1,3);
+                Quaterniond qi = q.reverse();
+                VectorXd gravity_comp = qi*gravity_W_;
+
+                z1.tail(3) = x.tail(3)-gravity_comp;
+                Zsig.col(i) = z1;
+                z_pred += weights_(i)*z1;
+            }
+                        
+            MatrixXd R = MatrixXd::Zero(n_z,n_z);
+            int n_dum = n_sig_-n_x_;
+            for (int i=0;i<n_dum/2;i++) R(i,i) = std_w_meas_*std_w_meas_;
+            for (int i=n_dum/2;i<n_dum;i++) R(i,i) = std_a_meas_*std_a_meas_;
+            
+            MatrixXd Tc = MatrixXd::Zero(n_sig_,n_z);
+            MatrixXd S = R;
+            for (int i=0; i<n_sig_;i++)
+            {
+                VectorXd delta_z = Zsig.col(i)-z_pred;
+                VectorXd delta_x = Xsig_pred_.col(i)-x_;
+                
+                S += weights_(i)*delta_z*delta_z.transpose();
+                Tc += weights_(i)*delta_x*delta_z.transpose();
+            }
+            MatrixXd K = Tc*S.inverse();
+            VectorXd z_diff =z-z_pred;
+            while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
+            while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
+            x_ += K*(z_diff);
+            while (x_(3)> M_PI) x_(3)-=2.*M_PI;
+            while (x_(3)<-M_PI) x_(3)+=2.*M_PI;
+        //    while (x_(4)> M_PI) x_(4)-=2.*M_PI;
+        //    while (x_(4)<-M_PI) x_(4)+=2.*M_PI;
+            P_ -= K*S*K.transpose();
+            double nis_lidar = (z_diff).transpose()*S.inverse()*(z_diff);
+            ofstream fout;
+            fout.open ("nis_stdAcc_" + std::to_string(std_a_) + "_stdYawDD_" + std::to_string(std_yawdd_) + ".csv",ios::app);
+            fout << nis_lidar << std::endl;
+            fout.close();
+        }
     MatrixXd UKF::GenerateSigmaPoints()
     {
         VectorXd x_st = VectorXd(n_aug_);
@@ -107,10 +162,10 @@ namespace ros_demo
             VectorXd x2(x_st.size());
 
             VectorXd del_s = sqrt(lambda_+n_aug_)*A.col(i);
-            VectorXd del_q = AngleToQuaternionMath(del_s.head(3));
+            VectorXd del_q = VecToQuaternionMath(del_s.head(3));
             
-            x1.head(4) = MultiplyQuaternions(x_st.head(4), del_q);
-            x2.head(4) = MultiplyQuaternions(x_st.head(4),-del_q);
+            x1.head(4) = MultiplyQuaternions( del_q,x_st.head(4));
+            x2.head(4) = MultiplyQuaternions(-del_q,x_st.head(4));
 
             x1.tail(n_aug_-4) = x_st.tail(n_aug_-4) + del_s.tail(n_aug_-3);
             x2.tail(n_aug_-4) = x_st.tail(n_aug_-4) - del_s.tail(n_aug_-3);
@@ -122,8 +177,8 @@ namespace ros_demo
     }
     VectorXd UKF::SigmaPointPrediction(double delta_t, MatrixXd Xsig_aug)
     {
-        MatrixXd Xsig_pred = MatrixXd(n_x_,n_sig_);
-        
+        MatrixXd Xsig_pred = MatrixXd(n_aug_,n_sig_);
+
         double dt2 = delta_t*delta_t;
         
         VectorXd x_next = VectorXd(x_.size());
@@ -138,54 +193,78 @@ namespace ros_demo
             VectorXd    w = x_i.segment(8,10);
             VectorXd  acc = x_i.tail(3);
 
-            VectorXd del_q = AngleToQuaternion(w*delta_t);
-            VectorXd
+            VectorXd del_q = VecToQuaternionMath(w*delta_t);
+            VectorXd new_q = MultiplyQuaternions(quat,del_q);
 
-            VectorXd x_state = (Xsig_aug.col(i)).head(5);//.block(0,i,5,0);
-            VectorXd noise = (Xsig_aug.col(i)).tail(2);//.block(4,i,2,0);
+            s += v*delta_t + 0.5*acc*dt2;
+            v += acc*delta_t;
 
-            VectorXd vec_1 = VectorXd(x_state.size());
-            VectorXd vec_2 = VectorXd(x_state.size());
-            
-            vec_2(0) = noise(0)*cos(x_state(3))*dt2/2;
-            vec_2(1) = noise(0)*sin(x_state(3))*dt2/2;
-            vec_2(2) = noise(0)*delta_t;
-            vec_2(3) = noise(1)*dt2/2;
-            vec_2(4) = noise(1)*delta_t;
-            
-            if (fabs(x_state(4)) < 1E-6)
-            {
-                vec_1(0) = x_state(2)*cos(x_state(3))*delta_t;
-                vec_1(1) = x_state(2)*sin(x_state(3))*delta_t;
-            }
-            else
-            {
-                double phi_k1 = x_state(3) + x_state(4)*delta_t;
-                vec_1(0) = x_state(2)/x_state(4)*( sin(phi_k1) - sin(x_state(3)));
-                vec_1(1) = x_state(2)/x_state(4)*(-cos(phi_k1) + cos(x_state(3)));
-            }
-            vec_1(2) = 0;
-            vec_1(3) = x_state(4)*delta_t;
-            vec_1(4) = 0;
-            VectorXd x1 = x_state + vec_1 + vec_2;
-    //        while (x1(3)> M_PI) x1(3)-=2.*M_PI;
-    //        while (x1(3)<-M_PI) x1(3)+=2.*M_PI;
-    //        while (x1(4)> M_PI) x1(4)-=2.*M_PI;
-    //        while (x1(4)<-M_PI) x1(4)+=2.*M_PI;
-            Xsig_pred.col(i) = x1;
+            VectorXd x_new(n_x_);
+            x_new << new_q,s,v,w,acc;
+            Xsig_pred.col(i) = x_new;
             x_next += weights_(i)*Xsig_pred.col(i);
             
         }
-    //    while (x_next(3)> M_PI) x_next(3)-=2.*M_PI;
-    //    while (x_next(3)<-M_PI) x_next(3)+=2.*M_PI;
-    //    while (x_next(4)> M_PI) x_next(4)-=2.*M_PI;
-    //    while (x_next(4)<-M_PI) x_next(4)+=2.*M_PI;
-
         //write result
         Xsig_pred_ = Xsig_pred;
         return x_next;
     }
-    VectorXd UKF::AngleToQuaternionMath(VectorXd angle)
+    void UKF::QuaternionAverage(MatrixXd q_sig,VectorXd q_prev,VectorXd& q_mean,MatrixXd& err)
+    {
+        double epsilon = 0.0001;
+        int max_iter = 1000;
+
+        VectorXd eps(4);
+        eps << 0.0001,0.0001,0.0001,0.0001;
+
+        MatrixXd qe(n_sig_, 4);
+        VectorXd temp(4);
+        temp.fill(0.0);
+        int t = 0;
+        while (t<max_iter)
+        {
+            VectorXd q_prev_inv = InverseQuaternion(q_prev);
+            VectorXd err_mean(err.rows(),err.cols());
+            err_mean.fill(0.0);
+            for (int i=0;i<n_sig_;i++)
+            {
+                VectorXd qi = q_sig.col(i);
+                qi.normalize();
+                qe.col(i) = MultiplyQuaternions(qi,q_prev_inv);
+
+                double qs = qe(0);
+                VectorXd qv = qe.segment(1,3);
+                double qe_norm = qe.col(i).norm();
+                
+                if (qv.norm() < epsilon) err.col(i).fill(0.0);
+                else
+                {
+                    if (qe_norm < epsilon) err.col(i).fill(0.0);
+                    else
+                    {
+                        temp(0) = log(qe_norm);
+                        qv.normalize();
+                        temp.tail(3) = qv*acos(qs/qe_norm);
+                        err.col(i) = 2*temp.tail(3);
+                        double err_norm = err.col(i).norm();
+                        double num = err_norm + M_PIl;
+                        while (num >= 2*M_PIl) num -= 2*M_PIl;
+                        err.col(i) = ((-M_PIl + num)/err_norm)*err.col(i);
+                    }
+                }
+                err_mean += err.col(i)/double(n_sig_);
+            }
+            VectorXd temp2(4);
+            temp2 << 0.0,err_mean/2.0;
+            temp2 += eps;
+            q_prev = MultiplyQuaternions(ExpQuaternion(temp2),q_prev);
+
+            if (err_mean.norm() < epsilon) break;
+        }
+        q_mean = q_prev;
+        return;
+    }
+    VectorXd UKF::VecToQuaternionMath(VectorXd angle)
     {
         assert(angle.size()==3);
         double len = angle.norm();
@@ -195,9 +274,9 @@ namespace ros_demo
         q.tail(3) = sin(len/2)*angle;
         return q;
     }
-    Quaterniond UKF::AngleToQuaternion(VectorXd angle)
+    Quaterniond UKF::VecToQuaternion(VectorXd angle)
     {
-        VectorXd a = AngleToQuaternionMath(angle);
+        VectorXd a = VecToQuaternionMath(angle);
         Quaterniond q;
         q.w() = a(0);
         q.vec() = a.tail(3);
@@ -213,5 +292,28 @@ namespace ros_demo
                p(0)*q(2) + p(2)*q(0) + p(3)*q(1) - p(1)*q(3),
                p(0)*q(3) + p(3)*q(0) + p(1)*q(2) - p(2)*q(1);
         return res;
+    }
+    VectorXd UKF::InverseQuaternion(VectorXd q)
+    {
+        VectorXd q_inv(4);
+        q_inv(0) = q(0)/ pow(quaternion.norm(q),2);
+        q_inv(1) = -q(1)/ pow(quaternion.norm(q),2);
+        q_inv(2) = -q(2)/ pow(quaternion.norm(q),2);
+        q_inv(3) = -q(3)/ pow(quaternion.norm(q),2);
+    
+        return q_inv;
+    }
+    VectorXd UKF:ExpQuaternion(VectorXd q)
+    {
+        double qs = q(0);
+        VectorXd qv(3);
+        qv << = q(1),q(2),q(3);
+        qv_norm = qv.norm();
+        VectorXd exp_q(4);
+        exp_q(0) = cos(qv_norm)
+        qv.normalize();
+        exp_q.segment(1,3) = sin(qv_norm)*qv
+        
+        return exp(qs)*exp_q;
     }
 }
