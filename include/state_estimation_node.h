@@ -22,8 +22,13 @@ namespace ros_demo {
 
         void InitializeParams();
         void Publish();
+
+        int publish_rate_ = 100;
+        bool is_initialized = false;
+        ros::Time prev_time;
+        int seq;
         
-        private:
+        // private:
         string mav_name_ = "firefly";
         ros::NodeHandle nh_;
         ros::NodeHandle private_nh_;
@@ -35,14 +40,17 @@ namespace ros_demo {
         // subscribes to imu sensor messages from the imu sensor topic
         string imu_topic_name_ = "demo_imu";
         ros::Subscriber imu_sub_;
+        sensor_msgs::ImuConstPtr imu_data_;
 
         // publishes to odometry topic for lee controller
         string pub_topic_name_ = "odometry_sensor2/odometry";
         ros::Publisher odometry_pub_;
-
+        
+        
         void ImuMsgCallback(const sensor_msgs::ImuConstPtr& imu_msg);
 
         UKF ukf_;
+        bool measurement_received_=false;
     };
 }
 

@@ -2,3 +2,4 @@
 mav_name: "firefly"
 imu_topic_name: "/firefly/demo_imu"
 pub_topic_name: "/firefly/odometry_sensor2/odometry"
+publish_rate: 100

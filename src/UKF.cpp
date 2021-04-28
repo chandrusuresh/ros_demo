@@ -6,8 +6,9 @@ namespace ros_demo
 {
     UKF::UKF()
     {
+        gravity_W_ = VectorXd(3);
         gravity_W_ << 0,0,9.81;
-        
+
         // Dimension of state vector: s,v,q,w,acc
         n_x_ = 16;
         // 6 dummy variables in acc, w in x,y & z
@@ -48,7 +49,7 @@ namespace ros_demo
         for (int i=3;i<6;i++) P_(i,i) = std_s_*std_s_;
         for (int i=6;i<9;i++) P_(i,i) = std_v_*std_v_;
         for (int i=9;i<12;i++) P_(i,i) = std_w_meas_*std_w_meas_;
-        for (int i=12;i<n_x_;i++) P_(i,i) = std_a_meas_*std_a_meas_;
+        for (int i=12;i<n_x_-1;i++) P_(i,i) = std_a_meas_*std_a_meas_;
 
         // Sigma Point predictions
         Xsig_pred_ = MatrixXd(n_x_,n_sig_);
@@ -80,7 +81,7 @@ namespace ros_demo
         x_ = x_next;
         P_ = P_next;
     }
-    void UKF::UpdateIMU(sensor_msgs::ImuConstPtr& imu_meas)
+    void UKF::UpdateIMU(const sensor_msgs::ImuConstPtr& imu_meas)
     {
         int n_z = 6;
         VectorXd z = VectorXd(n_z);
@@ -145,19 +146,19 @@ namespace ros_demo
         x_st.head(n_x_) = x_;
     
         // dummy_var_size
-        int n_dum = n_sig_-n_x_;
+        int n_dum = 6;//n_sig_-n_x_;
         MatrixXd Q_noise = MatrixXd(n_dum,n_dum);
-        for (int i=0;i<n_dum/2;i++) Q_noise(i,i) = std_w_meas_*std_w_meas_;
-        for (int i=n_dum/2;i<n_dum;i++) Q_noise(i,i) = std_a_meas_*std_a_meas_;
+        // for (int i=0;i<n_dum/2;i++) Q_noise(i,i) = std_w_meas_*std_w_meas_;
+        // for (int i=n_dum/2;i<n_dum;i++) Q_noise(i,i) = std_a_meas_*std_a_meas_;
 
         // Note: P_aug is the covariance.
         // Covariance for orientation is given in terms of angles, so it has one less component.
         // Hence the size is (n_aug_-1,n_aug_-1)
 
-        MatrixXd P_aug = MatrixXd(n_aug_-1,n_aug_-1);
-        P_aug.fill(0.0);
-        P_aug.topLeftCorner(n_x_-1, n_x_-1) = P_;
-        P_aug.bottomRightCorner(n_dum,n_dum) = Q_noise;
+        MatrixXd P_aug = P_;
+        // P_aug.fill(0.0);
+        // P_aug.topLeftCorner(n_x_-1, n_x_-1) = P_;
+        // P_aug.bottomRightCorner(n_dum,n_dum) = Q_noise;
 
         //create sigma point matrix
         MatrixXd Xsig = MatrixXd(n_aug_, n_sig_);

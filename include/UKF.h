@@ -80,9 +80,8 @@ namespace ros_demo
         long long previous_timestamp_;
 
         void set_init_position(VectorXd init_x);
-        void ProcessMeasurement(sensor_msgs::ImuConstPtr& imu_meas);
         void Prediction(double delta_t);
-        void UpdateIMU(sensor_msgs::ImuConstPtr& imu_meas);
+        void UpdateIMU(const sensor_msgs::ImuConstPtr& imu_meas);
         MatrixXd GenerateSigmaPoints();
         VectorXd SigmaPointPrediction(double delta_t, MatrixXd Xsig_aug);
         VectorXd VecToQuaternionMath(VectorXd angle);
