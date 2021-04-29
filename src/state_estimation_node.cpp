@@ -15,6 +15,7 @@ namespace ros_demo
         imu_sub_ = nh_.subscribe(imu_topic_name_, 1,&StateEstimationNode::ImuMsgCallback, this);
         // odometry_pub_ = nh_.advertise<nav_msgs::Odometry>("/firefly/odometry_sensor2/odometry", 1);
         odometry_pub_ = nh_.advertise<nav_msgs::Odometry>(pub_topic_name_, 10);
+        // Publish();
     }
 
     StateEstimationNode::~StateEstimationNode() { }
@@ -37,6 +38,7 @@ namespace ros_demo
             double dt = (time_now-prev_time).toSec();
             if (dt > 0)
             {
+                total_sim_time += dt;
                 ROS_INFO_ONCE("Predicting with dt = %.5f",dt);
                 ukf_.Prediction(dt);
 
@@ -44,10 +46,11 @@ namespace ros_demo
                 nav_msgs::OdometryPtr odometry_msg(new nav_msgs::Odometry);
                 odometry_msg->header.seq = seq++;
                 odometry_msg->header.stamp = time_now;
-                odometry_msg->pose.pose.orientation.w = ukf_.x_(0);
-                odometry_msg->pose.pose.orientation.x = ukf_.x_(1);
-                odometry_msg->pose.pose.orientation.y = ukf_.x_(2);
-                odometry_msg->pose.pose.orientation.z = ukf_.x_(3);
+                
+                odometry_msg->pose.pose.orientation.w = ukf_.x_(0);//0;//
+                odometry_msg->pose.pose.orientation.x = ukf_.x_(1);0;//
+                odometry_msg->pose.pose.orientation.y = ukf_.x_(2);0;//
+                odometry_msg->pose.pose.orientation.z = ukf_.x_(3);0;//
 
                 odometry_msg->pose.pose.position.x = ukf_.x_(4);
                 odometry_msg->pose.pose.position.y = ukf_.x_(5);
@@ -88,11 +91,15 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
     ros::NodeHandle private_nh("~");
     ros_demo::StateEstimationNode state_estimation_node(nh,private_nh);
-    ros::Rate loop_rate(state_estimation_node.publish_rate_);
+    // ros::Rate loop_rate(state_estimation_node.publish_rate_);
 
-    state_estimation_node.Publish();
+    while (ros::ok())
+    {
+        state_estimation_node.Publish();
 
-    ros::spin();
-    loop_rate.sleep();
+        // loop_rate.sleep();
+        ros::spinOnce();
+    }
+
     return 0;
 }

@@ -32,7 +32,7 @@
     </include>
     <node name="state_estimation_node" pkg="ros_demo" type="state_estimation_node" output="screen">
       <rosparam command="load" file="$(find ros_demo)/resource/state_estimation_node_topics_$(arg mav_name).yaml" />
-      <!-- <remap from="odometry" to="odometry_sensor1/odometry" /> -->
+      <remap from="odometry" to="odometry_sensor2/odometry" />
     </node>
     <node name="lee_position_controller_node" pkg="rotors_control" type="lee_position_controller_node" output="screen">
       <rosparam command="load" file="$(find rotors_gazebo)/resource/lee_controller_$(arg mav_name).yaml" />
@@ -43,6 +43,6 @@
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
     <node name="data_logger" pkg="ros_demo" type="data_logger" />
-    <node pkg="rosbag" type="record" name="cmd" output="screen" args="-o /home/kakul/catkin_ws/bagfiles/$(arg mav_name)_data_ --topic /$(arg mav_name)/imu /$(arg mav_name)/demo_imu"/>
+    <node pkg="rosbag" type="record" name="odo" output="screen" args="-o /home/kakul/catkin_ws/bagfiles/$(arg mav_name)_pose --topic /$(arg mav_name)/odometry_sensor2/odometry /$(arg mav_name)/ground_truth/odometry"/>
   </group>
 </launch>
